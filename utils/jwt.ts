@@ -13,16 +13,14 @@ export interface JWTPayload {
   userId: string;
   username: string;
   type: string;
-  storeId: string | undefined;
 }
 
 // For API routes (Node.js runtime)
-export const generateToken = (user: IUser, storeId: string | undefined): string => {
+export const generateToken = (user: IUser): string => {
   const payload: JWTPayload = {
     userId: user._id.toString(),
     username: user.username,
     type: user.type,
-    storeId,
   };
 
   return jwt.sign(payload, JWT_SECRET!, {

@@ -40,7 +40,6 @@ const SignInPage = () => {
           60 * 60 * 24 * 7
         }; secure; samesite=strict`;
 
-        // Store user info in cookie (optional)
         document.cookie = `user-info=${JSON.stringify(
           data.data.user
         )}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=strict`;

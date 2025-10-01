@@ -4,7 +4,6 @@ import connectToDatabase from "@/app/lib/dbconfig";
 import { comparePassword } from "@/app/lib/password";
 import { generateToken } from "@/utils/jwt";
 import { NextRequest, NextResponse } from "next/server";
-import { StoreModel } from "@/app/model/store/store.schema";
 
 export const dynamic = "force-dynamic";
 
@@ -36,10 +35,6 @@ export async function POST(request: NextRequest) {
       $or: [{ username: trimmedUsername }, { phoneNumber: trimmedUsername }],
     }).select("+password"); // Ensure password is included if it's excluded by default
 
-    const storeData: any = await StoreModel.findOne({
-      ownerId: user._id,
-    }).select("_id");
-
     if (!user) {
       return NextResponse.json(
         {
@@ -64,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate JWT token
-    const token = generateToken(user, storeData._id.toString());
+    const token = generateToken(user);
 
     // Remove password from response
     const userResponse = {

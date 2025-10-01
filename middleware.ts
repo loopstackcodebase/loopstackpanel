@@ -20,7 +20,6 @@ const EXCLUDED_API_PATHS = [
 
 // Define role-based protected paths
 const ADMIN_ONLY_PATHS = ["/api/admin"];
-const OWNER_ONLY_PATHS = ["/api/owner"];
 
 interface JWTPayload {
   userId: string;
@@ -53,10 +52,6 @@ function isExcludedPath(pathname: string): boolean {
 
 function requiresAdminRole(pathname: string): boolean {
   return ADMIN_ONLY_PATHS.some((adminPath) => pathname.startsWith(adminPath));
-}
-
-function requiresOwnerRole(pathname: string): boolean {
-  return OWNER_ONLY_PATHS.some((ownerPath) => pathname.startsWith(ownerPath));
 }
 
 function createErrorResponse(message: string, status: number) {
@@ -138,16 +133,6 @@ export async function middleware(request: NextRequest) {
         return createErrorResponse("Admin access required", 403);
       }
       console.log(`Admin access granted for ${pathname}`);
-    }
-
-    if (requiresOwnerRole(pathname)) {
-      if (payload.type !== "owner") {
-        console.log(
-          `Access denied: User type ${payload.type} cannot access owner path ${pathname}`
-        );
-        return createErrorResponse("Owner access required", 403);
-      }
-      console.log(`Owner access granted for ${pathname}`);
     }
 
     // Add user info to headers for use in API routes
@@ -250,8 +235,6 @@ export const config = {
      * - Favicon, etc.
      */
     "/api/admin/:path*",
-    "/api/owner/:path*",
-    "/api/upload-images/:path*",
     // Panel routes pattern: /{username}/panel and /{username}/panel/*
     "/((?!_next/static|_next/image|favicon.ico).*)/panel",
     "/((?!_next/static|_next/image|favicon.ico).*)/panel/:path*",
