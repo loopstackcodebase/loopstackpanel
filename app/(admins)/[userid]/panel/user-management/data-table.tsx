@@ -100,37 +100,43 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between py-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4">
+        {/* Search input - full width on mobile */}
+        <div className="w-full md:w-auto">
           <Input
             placeholder="Search..."
             value={searchQuery}
             onChange={handleSearch}
-            className="max-w-sm"
+            className="w-full"
           />
-          <div className="flex items-center gap-2">
-            <Input
-              type="date"
-              placeholder="Select date..."
-              value={dateInputValue}
-              onChange={(e) => {
-                const value = e.target.value;
-                setDateInputValue(value);
-                if (value) {
-                  // Convert YYYY-MM-DD to DD-MM-YYYY format for the API
-                  const [year, month, day] = value.split('-');
-                  onDateFilterChange(`${day}-${month}-${year}`);
-                } else {
-                  onDateFilterChange("");
-                }
-              }}
-              className="w-40"
-            />
+        </div>
+        
+        {/* Filter controls - stack on mobile, row on desktop */}
+        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+          <Input
+            type="date"
+            placeholder="Select date..."
+            value={dateInputValue}
+            onChange={(e) => {
+              const value = e.target.value;
+              setDateInputValue(value);
+              if (value) {
+                // Convert YYYY-MM-DD to DD-MM-YYYY format for the API
+                const [year, month, day] = value.split('-');
+                onDateFilterChange(`${day}-${month}-${year}`);
+              } else {
+                onDateFilterChange("");
+              }
+            }}
+            className="w-full sm:w-40"
+          />
+          
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="ml-auto cursor-pointer">
+                <Button variant="outline" className="w-full sm:w-auto hover:cursor-pointer">
                   <Filter className="mr-2 h-4 w-4" />
-                  Filter by Period
+                  <span className="whitespace-nowrap">Filter by Period</span>
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -173,9 +179,10 @@ export function DataTable<TData, TValue>({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            
             <Button 
               variant="outline" 
-              className="cursor-pointer"
+              className="w-full sm:w-auto hover:cursor-pointer"
               onClick={() => {
                 setSearchQuery("");
                 setDateInputValue("");
@@ -185,13 +192,13 @@ export function DataTable<TData, TValue>({
               Reset Filters
             </Button>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
+          
+          {/* Items per page selector */}
           <Select
             value={pagination.limit.toString()}
             onValueChange={(value) => onLimitChange(parseInt(value))}
           >
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-full sm:w-[120px]">
               <SelectValue placeholder="10 per page" />
             </SelectTrigger>
             <SelectContent>
@@ -204,14 +211,14 @@ export function DataTable<TData, TValue>({
           </Select>
         </div>
       </div>
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border overflow-x-auto">
+        <Table className="min-w-full">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="whitespace-nowrap">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -244,7 +251,7 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="whitespace-nowrap">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -254,19 +261,19 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between space-x-2 py-4">
-        <div className="text-sm text-muted-foreground">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
+        <div className="text-sm text-muted-foreground text-center sm:text-left w-full sm:w-auto">
           Showing {pagination.page > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0} to{" "}
           {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
           {pagination.total} entries
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onPageChange(pagination.page - 1)}
             disabled={pagination.page <= 1}
-            className="hidden sm:flex cursor-pointer"
+            className="hidden sm:flex hover:cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" />
             Previous
@@ -276,12 +283,12 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={() => onPageChange(pagination.page - 1)}
             disabled={pagination.page <= 1}
-            className="sm:hidden cursor-pointer"
+            className="sm:hidden hover:cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           
-          <div className="flex items-center justify-center text-sm font-medium">
+          <div className="flex items-center justify-center text-sm font-medium px-2">
             Page {pagination.page} of {pagination.totalPages}
           </div>
           
@@ -290,7 +297,7 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={() => onPageChange(pagination.page + 1)}
             disabled={pagination.page >= pagination.totalPages}
-            className="hidden sm:flex cursor-pointer"
+            className="hidden sm:flex hover:cursor-pointer"
           >
             Next
             <ChevronRight className="h-4 w-4 ml-1" />
@@ -300,7 +307,7 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={() => onPageChange(pagination.page + 1)}
             disabled={pagination.page >= pagination.totalPages}
-            className="sm:hidden cursor-pointer"
+            className="sm:hidden hover:cursor-pointer"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>

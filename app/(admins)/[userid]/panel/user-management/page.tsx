@@ -246,16 +246,15 @@ export default function UserManagementPage() {
   }, [pagination.page, pagination.limit, searchQuery, dateFilter])
 
   return (
-    <div className="container mx-auto py-10 text-black">
-      <h1 className="text-2xl font-bold tracking-tight mb-6">Owner Management</h1>
-      
+    <div className="container mx-auto py-4 px-2 sm:px-4 text-black">
+  
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-6">
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 sm:p-4 mb-4 sm:mb-6 text-sm sm:text-base">
           {error}
         </div>
       )}
       
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6">
         <DataTable
           columns={enhancedColumns}
           data={owners}
