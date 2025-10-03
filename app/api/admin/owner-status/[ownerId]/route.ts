@@ -8,6 +8,9 @@ export async function PATCH(
   { params }: { params: Promise<{ ownerId: string }> }
 ) {
   try {
+    // Connect to database
+    await connectToDatabase();
+    
     const { ownerId } = await params;
     console.log("Owner ID:", ownerId);
 
@@ -27,18 +30,20 @@ export async function PATCH(
     }
 
     // Toggle status
-    owner.status = owner.status === "active" ? "inactive" : "active";
+    const newStatus = owner.status === "active" ? "inactive" : "active";
+    owner.status = newStatus;
     await owner.save();
 
     return NextResponse.json({
       success: true,
-      message: `Owner status changed to ${owner.status}`,
-      data: { id: owner._id, status: owner.status },
+      message: `Owner status changed to ${newStatus}`,
+      data: { id: owner._id, status: newStatus },
     });
   } catch (error) {
     console.error("Change owner status error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      { success: false, message: `Failed to update owner status: ${errorMessage}` },
       { status: 500 }
     );
   }

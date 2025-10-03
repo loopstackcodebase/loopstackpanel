@@ -1,12 +1,12 @@
 
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Lexend } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({
+const lexend = Lexend({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-outfit",
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-lexend",
+  weight: ["400"],
   display: "swap",
   preload: true,
   fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
@@ -63,7 +63,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className={`${outfit.className} ${outfit.variable} antialiased`}>
+      <body className={`${lexend.className} ${lexend.variable} antialiased`}>
         {children}
       </body>
     </html>
