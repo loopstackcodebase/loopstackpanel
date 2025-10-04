@@ -46,7 +46,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Prepare update object
-    const updateData: any = {};
+    const updateData: Record<string, any> = {};
 
     if (plan_name !== undefined) {
       if (!plan_name.trim()) {

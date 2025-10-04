@@ -118,7 +118,7 @@ const AdminLayout = ({ children, params }: any) => {
     {
       id: "plan-master",
       name: "Plan Master",
-      href: `/${userid}/panel/plan-master`,
+      href: `/${userid}/panel/plan-management`,
       icon: (
         <svg
           className="h-5 w-5"
