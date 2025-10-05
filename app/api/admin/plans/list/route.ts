@@ -12,14 +12,10 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
 
-    // Define searchable fields for the Plan model
+    // Define searchable fields for plans (only string fields for text search)
     const searchableFields = [
       "plan_name",
       "status",
-      "plan_price",
-      "plan_validity_days",
-      "products_list_count",
-      "description",
     ];
 
     // Process all query parameters using the global utility
