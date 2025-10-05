@@ -43,7 +43,9 @@ export const createColumns = ({ onStatusToggle, statusUpdateLoading, onEditPlan 
   },
   {
     accessorKey: "plan_validity_days",
-    header: "Validity (Days)",
+    header: ({ column }) => (
+      <div className="text-center">Validity (Days)</div>
+    ),
     cell: ({ row }) => {
       const days = row.getValue("plan_validity_days") as number
       return (
@@ -69,11 +71,13 @@ export const createColumns = ({ onStatusToggle, statusUpdateLoading, onEditPlan 
   },
   {
     accessorKey: "products_list_count",
-    header: "Products Count",
+    header: ({ column }) => (
+      <div className="text-center">Products Count</div>
+    ),
     cell: ({ row }) => {
       const count = row.getValue("products_list_count") as number | undefined
       return (
-        <div className="flex justify-center">
+        <div className="text-center">
           <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
             {count || 0} products
           </Badge>
