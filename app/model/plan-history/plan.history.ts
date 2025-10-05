@@ -7,7 +7,6 @@ export interface IPlanHistory extends Document {
   plan_id: mongoose.Types.ObjectId;
   buyed_date: Date;
   expiry_date: Date;
-  status: "active" | "expired" | "cancelled";
 }
 
 /* ---------------------- Plan History Schema ---------------------- */
@@ -32,12 +31,6 @@ const PlanHistorySchema = new Schema<IPlanHistory>(
       type: Date,
       required: true,
     },
-    status: {
-      type: String,
-      enum: ["active", "expired", "cancelled"],
-      required: true,
-      default: "active",
-    },
   },
   {
     timestamps: true,
@@ -49,6 +42,20 @@ PlanHistorySchema.index({ buyed_owner_username: 1 });
 PlanHistorySchema.index({ plan_id: 1 });
 PlanHistorySchema.index({ buyed_date: -1 });
 PlanHistorySchema.index({ expiry_date: 1 });
+
+// Virtual field to calculate status based on expiry_date
+PlanHistorySchema.virtual('status').get(function() {
+  const now = new Date();
+  if (this.expiry_date > now) {
+    return 'active';
+  } else {
+    return 'expired';
+  }
+});
+
+// Ensure virtual fields are serialized
+PlanHistorySchema.set('toJSON', { virtuals: true });
+PlanHistorySchema.set('toObject', { virtuals: true });
 
 export const PlanHistoryModel =
   mongoose.models.PlanHistory || mongoose.model<IPlanHistory>("PlanHistory", PlanHistorySchema);

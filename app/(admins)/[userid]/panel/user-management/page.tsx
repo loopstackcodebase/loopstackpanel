@@ -246,15 +246,19 @@ export default function UserManagementPage() {
   }, [pagination.page, pagination.limit, searchQuery, dateFilter])
 
   return (
-    <div className="container mx-auto py-4 px-2 sm:px-4 text-black">
-  
+
+    <div className="container mx-auto py-6 px-4 sm:px-6">
+
+  <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold">User Management</h1>
+          <p className="text-gray-600 mt-1">Manage all store owners within Loopstack efficiently</p>
+        </div>
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 sm:p-4 mb-4 sm:mb-6 text-sm sm:text-base">
           {error}
         </div>
       )}
       
-      <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6">
         <DataTable
           columns={enhancedColumns}
           data={owners}
@@ -266,7 +270,6 @@ export default function UserManagementPage() {
           onDateFilterChange={handleDateFilterChange}
           onReset={handleReset}
         />
-      </div>
     </div>
   )
 }

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/app/lib/dbconfig";
 import { PlanHistoryModel } from "@/app/model/plan-history/plan.history";
+import { UserModel } from "@/app/model/users/user.schema";
+import { StoreModel } from "@/app/model/store/store.schema";
+import {
+  processQueryParameters,
+  executePaginatedQuery,
+} from "@/utils/queryProcessor";
 
 export const dynamic = "force-dynamic";
 
@@ -8,154 +14,86 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
 
-    const { searchParams } = new URL(req.url);
-    
-    // Pagination parameters
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const skip = (page - 1) * limit;
+    // Define searchable fields for plan history (only string fields for text search)
+    const searchableFields = [
+      "buyed_owner_username",
+    ];
 
-    // Search parameter (key:value format)
-    const search = searchParams.get("search");
-    
-    // Date filter parameter (specific date search)
-    const dateFilter = searchParams.get("date");
-    
-    // Sort parameter (this month, last month, last 6 months, last one year, last 2 years)
-    const sort = searchParams.get("sort");
+    // Process all query parameters using the global utility
+    const processedQuery = processQueryParameters(
+      req,
+      searchableFields,
+      "buyed_date" // Date field to use for sorting/filtering
+    );
 
-    // Build query object
-    let query: any = {};
+    // Execute the paginated query
+    const result = await executePaginatedQuery(
+      PlanHistoryModel,
+      processedQuery,
+      "-__v", // Exclude version field
+      { buyed_date: -1 } // Sort by purchase date (newest first)
+    );
 
-    // Handle search functionality (key:value format)
-    if (search) {
-      try {
-        const searchParts = search.split(":");
-        if (searchParts.length === 2) {
-          const [key, value] = searchParts;
-          const trimmedKey = key.trim();
-          const trimmedValue = value.trim();
-          
-          if (trimmedKey === "buyed_owner_username") {
-            query.buyed_owner_username = { $regex: trimmedValue, $options: "i" };
-          } else if (trimmedKey === "status") {
-            query.status = trimmedValue;
-          } else if (trimmedKey === "plan_id") {
-            query.plan_id = trimmedValue;
+    // Populate plan details manually after the query
+    const populatedData = await PlanHistoryModel.populate(result.data, {
+      path: 'plan_id',
+      select: 'plan_name plan_validity_days plan_price status description'
+    });
+
+    // Enhance data with user and store details
+    const enhancedData = await Promise.all(
+      populatedData.map(async (historyItem: any) => {
+        try {
+          // Find user by username
+          const user = await UserModel.findOne(
+            { username: historyItem.buyed_owner_username, type: "owner" },
+            { username: 1, phoneNumber: 1, status: 1, createdAt: 1 }
+          );
+
+          let storeDetails = null;
+          if (user) {
+            // Find store by owner ID
+            const store = await StoreModel.findOne(
+              { ownerId: user._id },
+              { displayName: 1, email: 1, description: 1 }
+            );
+            storeDetails = store;
           }
-        } else {
-          // If not in key:value format, search across multiple fields
-          query.$or = [
-            { buyed_owner_username: { $regex: search, $options: "i" } },
-            { status: { $regex: search, $options: "i" } }
-          ];
-        }
-      } catch (error) {
-        // If search parsing fails, do a general search
-        query.$or = [
-          { buyed_owner_username: { $regex: search, $options: "i" } },
-          { status: { $regex: search, $options: "i" } }
-        ];
-      }
-    }
 
-    // Handle date filter (specific date search on buyed_date)
-    if (dateFilter) {
-      try {
-        const filterDate = new Date(dateFilter);
-        if (!isNaN(filterDate.getTime())) {
-          const startOfDay = new Date(filterDate);
-          startOfDay.setHours(0, 0, 0, 0);
-          
-          const endOfDay = new Date(filterDate);
-          endOfDay.setHours(23, 59, 59, 999);
-          
-          query.buyed_date = {
-            $gte: startOfDay,
-            $lte: endOfDay
+          return {
+            ...historyItem.toObject(),
+            user_details: user || null,
+            store_details: storeDetails,
+          };
+        } catch (error) {
+          console.error(`Error fetching details for ${historyItem.buyed_owner_username}:`, error);
+          return {
+            ...historyItem.toObject(),
+            user_details: null,
+            store_details: null,
           };
         }
-      } catch (error) {
-        console.error("Invalid date filter:", error);
-      }
-    }
-
-    // Handle sort parameter (time-based filtering on buyed_date)
-    if (sort) {
-      const now = new Date();
-      let startDate: Date | null = null;
-
-      switch (sort.toLowerCase()) {
-        case "this month":
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          break;
-        case "last month":
-          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          const endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-          query.buyed_date = { $gte: startDate, $lte: endDate };
-          break;
-        case "last 6 months":
-          startDate = new Date();
-          startDate.setMonth(startDate.getMonth() - 6);
-          break;
-        case "last one year":
-        case "last 1 year":
-          startDate = new Date();
-          startDate.setFullYear(startDate.getFullYear() - 1);
-          break;
-        case "last 2 years":
-          startDate = new Date();
-          startDate.setFullYear(startDate.getFullYear() - 2);
-          break;
-        default:
-          startDate = null;
-      }
-
-      if (startDate && sort.toLowerCase() !== "last month") {
-        if (query.buyed_date) {
-          query.buyed_date.$gte = startDate;
-        } else {
-          query.buyed_date = { $gte: startDate };
-        }
-      }
-    }
-
-    // Execute query with pagination and populate plan details
-    const planHistory = await PlanHistoryModel.find(query)
-      .populate('plan_id', 'plan_name plan_validity_days plan_price status')
-      .skip(skip)
-      .limit(limit)
-      .sort({ buyed_date: -1 });
-
-    // Get total count for pagination
-    const total = await PlanHistoryModel.countDocuments(query);
-
-    // Calculate pagination info
-    const totalPages = Math.ceil(total / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
+      })
+    );
 
     return NextResponse.json({
       success: true,
-      data: planHistory,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage,
-        hasPrevPage,
-      },
-      filters: {
-        search: search || null,
-        dateFilter: dateFilter || null,
-        sort: sort || null,
-      },
+      data: enhancedData,
+      pagination: result.pagination,
+      filters: result.filters,
+      message: `Found ${result.pagination.total} plan history records`,
     });
   } catch (error) {
     console.error("Plan history list error:", error);
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      {
+        success: false,
+        message: "Internal server error",
+        error:
+          process.env.NODE_ENV === "development"
+            ? (error as Error).message
+            : undefined,
+      },
       { status: 500 }
     );
   }

@@ -139,7 +139,8 @@ export default function UserView() {
         Back
       </Button>
 
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6">User Details</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-4">User Details</h1>
+      <p className="text-gray-600 mb-6">View comprehensive information about this user including personal details, subscription plans, and account activity.</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Details Section */}
