@@ -10,7 +10,7 @@ export async function PUT(req: NextRequest) {
     await connectToDatabase();
 
     const body = await req.json();
-    const { plan_id, plan_name, plan_validity_days, plan_price, status } = body;
+    const { plan_id, plan_name, plan_validity_days, plan_price, products_list_count, status } = body;
 
     // Validation
     if (!plan_id) {
@@ -100,6 +100,19 @@ export async function PUT(req: NextRequest) {
         );
       }
       updateData.plan_price = plan_price;
+    }
+
+    if (products_list_count !== undefined) {
+      if (typeof products_list_count !== "number" || products_list_count < 0) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: "products_list_count must be a non-negative number" 
+          },
+          { status: 400 }
+        );
+      }
+      updateData.products_list_count = products_list_count;
     }
 
     if (status !== undefined) {

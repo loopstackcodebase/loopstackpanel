@@ -9,14 +9,14 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
 
     const body = await req.json();
-    const { plan_name, plan_validity_days, plan_price } = body;
+    const { plan_name, plan_validity_days, plan_price, products_list_count } = body;
 
     // Validation
-    if (!plan_name || !plan_validity_days || plan_price === undefined) {
+    if (!plan_name || !plan_validity_days || plan_price === undefined || products_list_count === undefined) {
       return NextResponse.json(
         { 
           success: false, 
-          message: "plan_name, plan_validity_days, and plan_price are required" 
+          message: "plan_name, plan_validity_days, plan_price, and products_list_count are required" 
         },
         { status: 400 }
       );
@@ -42,6 +42,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (typeof products_list_count !== "number" || products_list_count < 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "products_list_count must be a non-negative number" 
+        },
+        { status: 400 }
+      );
+    }
+
     // Check if plan name already exists
     const existingPlan = await PlanModel.findOne({ plan_name });
     if (existingPlan) {
@@ -59,6 +69,7 @@ export async function POST(req: NextRequest) {
       plan_name,
       plan_validity_days,
       plan_price,
+      products_list_count,
     });
 
     await newPlan.save();

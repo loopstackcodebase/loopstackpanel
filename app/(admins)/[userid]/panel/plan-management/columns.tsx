@@ -16,6 +16,7 @@ export type Plan = {
   plan_name: string
   plan_validity_days: number
   plan_price: number
+  products_list_count?: number
   status: "active" | "inactive"
   createdAt: string
   updatedAt: string
@@ -62,6 +63,20 @@ export const createColumns = ({ onStatusToggle, statusUpdateLoading, onEditPlan 
       return (
         <div className="font-medium text-green-600">
           ${price.toFixed(2)}
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: "products_list_count",
+    header: "Products Count",
+    cell: ({ row }) => {
+      const count = row.getValue("products_list_count") as number | undefined
+      return (
+        <div className="flex justify-center">
+          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+            {count || 0} products
+          </Badge>
         </div>
       )
     },

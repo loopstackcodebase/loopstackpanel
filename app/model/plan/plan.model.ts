@@ -6,6 +6,7 @@ export interface IPlan extends Document {
   plan_name: string;
   plan_validity_days: number;
   plan_price: number;
+  products_list_count: number;
   status: "active" | "inactive";
 }
 
@@ -27,6 +28,12 @@ const PlanSchema = new Schema<IPlan>(
       type: Number,
       required: true,
       min: 0,
+    },
+    products_list_count: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
     },
     status: {
       type: String,

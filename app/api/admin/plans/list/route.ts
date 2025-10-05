@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
       "status",
       "plan_price",
       "plan_validity_days",
+      "products_list_count",
       "description",
     ];
 

@@ -22,6 +22,7 @@ export function EditPlanDialog({ open, onOpenChange, plan, onPlanUpdated }: Edit
     plan_name: "",
     plan_validity_days: "",
     plan_price: "",
+    products_list_count: "",
     status: "active" as "active" | "inactive"
   })
 
@@ -32,6 +33,7 @@ export function EditPlanDialog({ open, onOpenChange, plan, onPlanUpdated }: Edit
         plan_name: plan.plan_name,
         plan_validity_days: plan.plan_validity_days.toString(),
         plan_price: plan.plan_price.toString(),
+        products_list_count: (plan.products_list_count || 0).toString(),
         status: plan.status
       })
     }
@@ -57,6 +59,10 @@ export function EditPlanDialog({ open, onOpenChange, plan, onPlanUpdated }: Edit
     }
     if (!formData.plan_price || parseFloat(formData.plan_price) < 0) {
       setError("Plan price must be 0 or greater")
+      return false
+    }
+    if (!formData.products_list_count || parseInt(formData.products_list_count) < 0) {
+      setError("Products list count must be 0 or greater")
       return false
     }
     return true
@@ -95,6 +101,7 @@ export function EditPlanDialog({ open, onOpenChange, plan, onPlanUpdated }: Edit
           plan_name: formData.plan_name.trim(),
           plan_validity_days: parseInt(formData.plan_validity_days),
           plan_price: parseFloat(formData.plan_price),
+          products_list_count: parseInt(formData.products_list_count),
           status: formData.status
         })
       })
@@ -194,6 +201,20 @@ export function EditPlanDialog({ open, onOpenChange, plan, onPlanUpdated }: Edit
               placeholder="Enter price"
               value={formData.plan_price}
               onChange={(e) => handleInputChange("plan_price", e.target.value)}
+              disabled={isLoading}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit_products_list_count">Products List Count</Label>
+            <Input
+              id="edit_products_list_count"
+              type="number"
+              min="0"
+              placeholder="Enter products list count"
+              value={formData.products_list_count}
+              onChange={(e) => handleInputChange("products_list_count", e.target.value)}
               disabled={isLoading}
               required
             />

@@ -20,6 +20,7 @@ export function CreatePlanDialog({ open, onOpenChange, onPlanCreated }: CreatePl
     plan_name: "",
     plan_validity_days: "",
     plan_price: "",
+    products_list_count: "",
     status: "active" as "active" | "inactive"
   })
 
@@ -43,6 +44,10 @@ export function CreatePlanDialog({ open, onOpenChange, onPlanCreated }: CreatePl
     }
     if (!formData.plan_price || parseFloat(formData.plan_price) < 0) {
       setError("Plan price must be 0 or greater")
+      return false
+    }
+    if (!formData.products_list_count || parseInt(formData.products_list_count) < 0) {
+      setError("Products list count must be 0 or greater")
       return false
     }
     return true
@@ -80,6 +85,7 @@ export function CreatePlanDialog({ open, onOpenChange, onPlanCreated }: CreatePl
           plan_name: formData.plan_name.trim(),
           plan_validity_days: parseInt(formData.plan_validity_days),
           plan_price: parseFloat(formData.plan_price),
+          products_list_count: parseInt(formData.products_list_count),
           status: formData.status
         })
       })
@@ -97,6 +103,7 @@ export function CreatePlanDialog({ open, onOpenChange, onPlanCreated }: CreatePl
           plan_name: "",
           plan_validity_days: "",
           plan_price: "",
+          products_list_count: "",
           status: "active"
         })
         onPlanCreated()
@@ -117,6 +124,7 @@ export function CreatePlanDialog({ open, onOpenChange, onPlanCreated }: CreatePl
         plan_name: "",
         plan_validity_days: "",
         plan_price: "",
+        products_list_count: "",
         status: "active"
       })
       setError(null)
@@ -162,6 +170,21 @@ export function CreatePlanDialog({ open, onOpenChange, onPlanCreated }: CreatePl
               placeholder="Enter plan name"
               value={formData.plan_name}
               onChange={(e) => handleInputChange("plan_name", e.target.value)}
+              disabled={isLoading}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="products_list_count" >Products Count</Label>
+            <Input
+              id="products_list_count"
+              className="mt-2"
+              type="number"
+              min="0"
+              placeholder="Enter products count"
+              value={formData.products_list_count}
+              onChange={(e) => handleInputChange("products_list_count", e.target.value)}
               disabled={isLoading}
               required
             />
