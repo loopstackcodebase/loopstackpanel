@@ -19,15 +19,21 @@ export type PlanHistory = {
   status: "active" | "expired"
 }
 
-export const columns: ColumnDef<PlanHistory>[] = [
+interface ColumnsProps {
+  onUsernameClick: (username: string) => void
+}
+
+export const createColumns = ({ onUsernameClick }: ColumnsProps): ColumnDef<PlanHistory>[] => [
   {
     accessorKey: "buyed_owner_username",
     header: "Username",
     cell: ({ row }) => {
       const username = row.getValue("buyed_owner_username") as string
-      // We'll need to get the userid from params in the component that uses this
       return (
-        <div className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
+        <div 
+          className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer"
+          onClick={() => onUsernameClick(username)}
+        >
           {username}
         </div>
       )
@@ -104,6 +110,7 @@ export const columns: ColumnDef<PlanHistory>[] = [
       const status = row.getValue("status") as string
       return (
         <Badge 
+          variant={status === "active" ? "default" : "secondary"}
           className={
             status === "active" 
               ? "bg-green-100 text-green-800 hover:bg-green-200" 
@@ -116,3 +123,8 @@ export const columns: ColumnDef<PlanHistory>[] = [
     },
   },
 ]
+
+// Default columns export for backward compatibility
+export const columns: ColumnDef<PlanHistory>[] = createColumns({
+  onUsernameClick: () => {}
+})

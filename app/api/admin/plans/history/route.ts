@@ -17,6 +17,10 @@ export async function GET(req: NextRequest) {
     // This is necessary for populate to work
     PlanModel;
 
+    // Get status filter from query parameters
+    const { searchParams } = new URL(req.url);
+    const statusFilter = searchParams.get("status");
+
     // Define searchable fields for plan history (only string fields for text search)
     const searchableFields = [
       "buyed_owner_username",
@@ -42,6 +46,61 @@ export async function GET(req: NextRequest) {
       path: 'plan_id',
       select: 'plan_name plan_validity_days plan_price status'
     });
+
+    // Filter by expired/active status if requested
+    let filteredData = populatedData;
+    if (statusFilter && (statusFilter === "expired" || statusFilter === "active")) {
+      const currentDate = new Date();
+      
+      filteredData = populatedData.filter((historyItem: any) => {
+        if (!historyItem.plan_id || !historyItem.buyed_date) {
+          return false;
+        }
+
+        // Calculate expiry date
+        const buyedDate = new Date(historyItem.buyed_date);
+        const validityDays = historyItem.plan_id.plan_validity_days || 0;
+        const expiryDate = new Date(buyedDate);
+        expiryDate.setDate(expiryDate.getDate() + validityDays);
+
+        const isExpired = currentDate > expiryDate;
+
+        if (statusFilter === "expired") {
+          return isExpired;
+        } else if (statusFilter === "active") {
+          return !isExpired;
+        }
+        
+        return true;
+      });
+
+      // Update pagination info based on filtered results
+      const filteredTotal = filteredData.length;
+      const page = parseInt(searchParams.get("page") || "1");
+      const limit = parseInt(searchParams.get("limit") || "10");
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      
+      // Apply pagination to filtered data
+      const paginatedFilteredData = filteredData.slice(startIndex, endIndex);
+      
+      // Update pagination object
+      const updatedPagination = {
+        ...result.pagination,
+        total: filteredTotal,
+        totalPages: Math.ceil(filteredTotal / limit),
+        hasNextPage: endIndex < filteredTotal,
+        hasPrevPage: page > 1
+      };
+
+      return NextResponse.json({
+        success: true,
+        data: paginatedFilteredData,
+        pagination: updatedPagination,
+        filters: result.filters,
+        message: `Found ${filteredTotal} ${statusFilter} plan history records`,
+      });
+    }
 
     return NextResponse.json({
       success: true,
