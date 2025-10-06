@@ -13,24 +13,10 @@ export type PlanHistory = {
     plan_validity_days: number
     plan_price: number
     status: string
-    description?: string
   }
   buyed_date: string
   expiry_date: string
   status: "active" | "expired"
-  user_details: {
-    _id: string
-    username: string
-    phoneNumber: string
-    status: string
-    createdAt: string
-  } | null
-  store_details: {
-    _id: string
-    displayName: string
-    email: string
-    description?: string
-  } | null
 }
 
 export const columns: ColumnDef<PlanHistory>[] = [
@@ -39,21 +25,10 @@ export const columns: ColumnDef<PlanHistory>[] = [
     header: "Username",
     cell: ({ row }) => {
       const username = row.getValue("buyed_owner_username") as string
+      // We'll need to get the userid from params in the component that uses this
       return (
-        <div className="font-medium">
+        <div className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
           {username}
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: "store_details",
-    header: "Store Name",
-    cell: ({ row }) => {
-      const storeDetails = row.getValue("store_details") as PlanHistory["store_details"]
-      return (
-        <div className="text-sm">
-          {storeDetails?.displayName || "N/A"}
         </div>
       )
     },
@@ -137,18 +112,6 @@ export const columns: ColumnDef<PlanHistory>[] = [
         >
           {status === "active" ? "Active" : "Expired"}
         </Badge>
-      )
-    },
-  },
-  {
-    accessorKey: "user_details",
-    header: "Phone",
-    cell: ({ row }) => {
-      const userDetails = row.getValue("user_details") as PlanHistory["user_details"]
-      return (
-        <div className="text-sm">
-          {userDetails?.phoneNumber || "N/A"}
-        </div>
       )
     },
   },

@@ -1,52 +1,45 @@
 "use client"
 
-import React, { useEffect, useState, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { DataTable } from "./data-table"
-import { PlanHistory } from "./columns"
+import { columns, PlanHistory } from "./columns"
+
+interface PaginationInfo {
+  currentPage: number
+  totalPages: number
+  totalItems: number
+  itemsPerPage: number
+}
 
 export default function PlanHistoryPage() {
   const [planHistory, setPlanHistory] = useState<PlanHistory[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  
-  // Pagination and filter state
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
-    hasNextPage: false,
-    hasPrevPage: false
+  const [loading, setLoading] = useState(true)
+  const [searchValue, setSearchValue] = useState("")
+  const [dateFilter, setDateFilter] = useState("all")
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10
   })
-  const [searchQuery, setSearchQuery] = useState("")
-  const [dateFilter, setDateFilter] = useState("")
 
-  // Fetch plan history data
-  const fetchPlanHistory = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    
+  const fetchPlanHistory = async (page: number = 1, search: string = "", dateFilter: string = "all") => {
     try {
-      // Build query parameters
-      const params = new URLSearchParams()
-      params.append("page", pagination.page.toString())
-      params.append("limit", pagination.limit.toString())
+      setLoading(true)
       
-      if (searchQuery) {
-        params.append("search", searchQuery)
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.itemsPerPage.toString(),
+      })
+
+      if (search.trim()) {
+        params.append('search', search.trim())
       }
-      
-      if (dateFilter) {
-        if (dateFilter.includes("-")) {
-          // If it's a specific date format (DD-MM-YYYY or YYYY-MM-DD)
-          params.append("date", dateFilter)
-        } else {
-          // If it's a time-based filter like "lastweek", "lastmonth", etc.
-          params.append("sort", dateFilter)
-        }
+
+      if (dateFilter && dateFilter !== 'all') {
+        params.append('dateFilter', dateFilter)
       }
-      
-      // Fetch data from API
+
       // Function to get cookie value by name
       const getCookie = (name: string): string | null => {
         if (typeof document === "undefined") return null;
@@ -59,104 +52,92 @@ export default function PlanHistoryPage() {
       };
       
       const token = getCookie("token");
-      
+
       const response = await fetch(`/api/admin/plans/history?${params.toString()}`, {
-        method: "GET",
+        method: 'GET',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           // Get token from cookies if available
           ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        }
+        },
       })
-      
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
+
+      const result = await response.json()
       
-      const data = await response.json()
-      
-      if (data.success) {
-        setPlanHistory(data.data)
+      if (result.success) {
+        setPlanHistory(result.data || [])
         setPagination({
-          page: data.pagination.page,
-          limit: data.pagination.limit,
-          total: data.pagination.total,
-          totalPages: data.pagination.totalPages,
-          hasNextPage: data.pagination.hasNextPage || false,
-          hasPrevPage: data.pagination.hasPrevPage || false
+          currentPage: result.pagination?.currentPage || 1,
+          totalPages: result.pagination?.totalPages || 1,
+          totalItems: result.pagination?.totalItems || 0,
+          itemsPerPage: result.pagination?.itemsPerPage || 10
         })
       } else {
-        throw new Error(data.message || "Failed to fetch plan history")
+        console.error('Failed to fetch plan history:', result.message)
+        setPlanHistory([])
       }
-    } catch (err) {
-      setError((err as Error).message)
-      console.error(`Failed to fetch plan history: ${(err as Error).message}`)
-      // Set empty data on error
+    } catch (error) {
+      console.error('Error fetching plan history:', error)
       setPlanHistory([])
-      setPagination(prev => ({
-        ...prev,
-        total: 0,
-        totalPages: 0,
-        hasNextPage: false,
-        hasPrevPage: false
-      }))
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
-  }, [pagination.page, pagination.limit, searchQuery, dateFilter])
+  }
 
-  // Fetch data on component mount and when dependencies change
   useEffect(() => {
-    fetchPlanHistory()
-  }, [fetchPlanHistory])
+    fetchPlanHistory(1, searchValue, dateFilter)
+  }, [])
 
-  // Handle page change
-  const handlePageChange = (newPage: number) => {
-    setPagination(prev => ({ ...prev, page: newPage }))
+  useEffect(() => {
+    fetchPlanHistory(1, searchValue, dateFilter)
+  }, [])
+
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value)
+    // Debounce search to avoid too many API calls
+    const timeoutId = setTimeout(() => {
+      fetchPlanHistory(1, value, dateFilter)
+    }, 300)
+    return () => clearTimeout(timeoutId)
   }
 
-  // Handle search
-  const handleSearch = (query: string) => {
-    setSearchQuery(query)
-    setPagination(prev => ({ ...prev, page: 1 })) // Reset to first page
+  const handleDateFilterChange = (value: string) => {
+    setDateFilter(value)
+    fetchPlanHistory(1, searchValue, value)
   }
 
-  // Handle date filter
-  const handleDateFilter = (filter: string) => {
-    setDateFilter(filter)
-    setPagination(prev => ({ ...prev, page: 1 })) // Reset to first page
+  const handlePageChange = (page: number) => {
+    fetchPlanHistory(page, searchValue, dateFilter)
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Plan History</h1>
-          <p className="text-muted-foreground">
-            View and manage purchased plan subscriptions by store owners.
+    <div className="container mx-auto py-6">
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="px-6 py-4 border-b">
+          <h1 className="text-2xl font-bold text-gray-900">Plan History</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            View and manage plan purchase history. Total: {pagination.totalItems} records
           </p>
         </div>
-      </div>
-
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-          <p className="font-medium">Error loading plan history</p>
-          <p className="text-sm">{error}</p>
+        <div className="p-6">
+          <DataTable
+          columns={columns}
+          data={planHistory}
+          searchValue={searchValue}
+          onSearchChange={handleSearchChange}
+          dateFilter={dateFilter}
+          onDateFilterChange={handleDateFilterChange}
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          onPageChange={handlePageChange}
+          isLoading={loading}
+        />
         </div>
-      )}
-
-      {/* Data Table */}
-      <DataTable
-        data={planHistory}
-        pagination={pagination}
-        isLoading={isLoading}
-        onPageChange={handlePageChange}
-        onSearch={handleSearch}
-        onDateFilter={handleDateFilter}
-      />
+      </div>
     </div>
   )
 }

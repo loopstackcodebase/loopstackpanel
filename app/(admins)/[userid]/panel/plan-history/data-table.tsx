@@ -13,7 +13,10 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
+import { useParams, useRouter } from "next/navigation"
 
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -22,51 +25,89 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ChevronDown, ChevronLeft, ChevronRight, Filter } from "lucide-react"
-import { PlanHistory, columns } from "./columns"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { ChevronDown, Search } from "lucide-react"
 
-interface DataTableProps {
-  data: PlanHistory[]
-  pagination: {
-    total: number
-    page: number
-    limit: number
-    totalPages: number
-    hasNextPage?: boolean
-    hasPrevPage?: boolean
-  }
-  isLoading: boolean
+interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[]
+  data: TData[]
+  searchValue: string
+  onSearchChange: (value: string) => void
+  dateFilter: string
+  onDateFilterChange: (value: string) => void
+  currentPage: number
+  totalPages: number
   onPageChange: (page: number) => void
-  onSearch: (value: string) => void
-  onDateFilter: (filter: string) => void
+  isLoading?: boolean
 }
 
-export function DataTable({
+export function DataTable<TData, TValue>({
+  columns,
   data,
-  pagination,
-  isLoading,
+  searchValue,
+  onSearchChange,
+  dateFilter,
+  onDateFilterChange,
+  currentPage,
+  totalPages,
   onPageChange,
-  onSearch,
-  onDateFilter,
-}: DataTableProps) {
+  isLoading = false,
+}: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const [dateInputValue, setDateInputValue] = React.useState("")
+  const params = useParams()
+  const router = useRouter()
+
+  const handleUsernameClick = (username: string) => {
+    // For now, we'll use the username as the user ID since we don't have the actual user ID
+    // In a real implementation, you'd need to fetch the user ID based on the username
+    router.push(`/${params.userid}/panel/user-management/view/${username}`)
+  }
+
+  // Create enhanced columns with click handlers
+  const enhancedColumns = React.useMemo(() => {
+    return columns.map((column) => {
+      if ('accessorKey' in column && column.accessorKey === "buyed_owner_username") {
+        return {
+          ...column,
+          cell: ({ row }: any) => {
+            const username = row.getValue("buyed_owner_username") as string
+            return (
+              <div 
+                className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer"
+                onClick={() => handleUsernameClick(username)}
+              >
+                {username}
+              </div>
+            )
+          },
+        }
+      }
+      return column
+    })
+  }, [columns, params.userid])
 
   const table = useReactTable({
     data,
-    columns,
+    columns: enhancedColumns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     state: {
@@ -75,121 +116,64 @@ export function DataTable({
       columnVisibility,
     },
     manualPagination: true,
-    pageCount: pagination.totalPages,
+    pageCount: totalPages,
   })
 
-  const handleSearch = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
-      setSearchQuery(value)
-      
-      // Debounce search to avoid too many API calls
-      const timeoutId = setTimeout(() => {
-        onSearch(value)
-      }, 300)
-
-      return () => clearTimeout(timeoutId)
-    },
-    [onSearch]
-  )
-
-  const handleDateFilter = (value: string) => {
-    setDateInputValue(value)
-    onDateFilter(value)
-  }
-
-  const handleDateSort = (sortType: string) => {
-    onDateFilter(sortType)
-  }
-
   return (
-    <div className="space-y-4">
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-2 flex-1">
-          <Input
-            placeholder="Search by username..."
-            value={searchQuery}
-            onChange={handleSearch}
-            className="max-w-sm"
-          />
-          
-          <Input
-            type="date"
-            placeholder="Filter by date"
-            value={dateInputValue}
-            onChange={(e) => handleDateFilter(e.target.value)}
-            className="max-w-sm"
-          />
+    <div className="w-full">
+      <div className="flex items-center justify-between py-4">
+        <div className="flex items-center space-x-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by username..."
+              value={searchValue}
+              onChange={(event) => onSearchChange(event.target.value)}
+              className="pl-8 max-w-sm"
+            />
+          </div>
+          <Select value={dateFilter} onValueChange={onDateFilterChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by date" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="yesterday">Yesterday</SelectItem>
+              <SelectItem value="last_week">Last Week</SelectItem>
+              <SelectItem value="this_month">This Month</SelectItem>
+              <SelectItem value="last_month">Last Month</SelectItem>
+              <SelectItem value="this_year">This Year</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-
-        <div className="flex gap-2">
-          {/* Date Sort Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Filter className="h-4 w-4" />
-                Date Filter
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleDateSort("lastweek")}>
-                Last Week
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDateSort("thismonth")}>
-                This Month
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDateSort("lastmonth")}>
-                Last Month
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDateSort("last3months")}>
-                Last 3 Months
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDateSort("last6months")}>
-                Last 6 Months
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDateSort("lastyear")}>
-                Last Year
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Column Visibility */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                Columns
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuItem
-                      key={column.id}
-                      className="capitalize"
-                      onClick={() => column.toggleVisibility(!column.getIsVisible())}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={column.getIsVisible()}
-                        onChange={() => column.toggleVisibility(!column.getIsVisible())}
-                        className="mr-2"
-                      />
-                      {column.id}
-                    </DropdownMenuItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="ml-auto">
+              Columns <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {table
+              .getAllColumns()
+              .filter((column) => column.getCanHide())
+              .map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(!!value)
+                    }
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                )
+              })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-
-      {/* Table */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -225,7 +209,10 @@ export function DataTable({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -233,62 +220,33 @@ export function DataTable({
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No plan history found.
+                  No results.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-
-      {/* Pagination */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="text-sm text-muted-foreground">
-          Showing {Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total)} to{" "}
-          {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} entries
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <div className="flex-1 text-sm text-muted-foreground">
+          Page {currentPage} of {totalPages}
         </div>
-        
-        <div className="flex items-center gap-2">
+        <div className="space-x-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onPageChange(pagination.page - 1)}
-            disabled={!pagination.hasPrevPage || isLoading}
-            className="gap-1"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage <= 1}
           >
-            <ChevronLeft className="h-4 w-4" />
             Previous
           </Button>
-          
-          <div className="flex items-center gap-1">
-            <span className="text-sm">Page</span>
-            <Select
-              value={pagination.page.toString()}
-              onValueChange={(value) => onPageChange(parseInt(value))}
-            >
-              <SelectTrigger className="w-16 h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-                  <SelectItem key={page} value={page.toString()}>
-                    {page}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-sm">of {pagination.totalPages}</span>
-          </div>
-          
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onPageChange(pagination.page + 1)}
-            disabled={!pagination.hasNextPage || isLoading}
-            className="gap-1"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages}
           >
             Next
-            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>

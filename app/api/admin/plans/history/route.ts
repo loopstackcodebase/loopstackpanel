@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/app/lib/dbconfig";
 import { PlanHistoryModel } from "@/app/model/plan-history/plan.history";
-import { UserModel } from "@/app/model/users/user.schema";
-import { StoreModel } from "@/app/model/store/store.schema";
+import { PlanModel } from "@/app/model/plan/plan.model";
 import {
   processQueryParameters,
   executePaginatedQuery,
@@ -13,6 +12,10 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
+
+    // Ensure Plan model is registered by importing it
+    // This is necessary for populate to work
+    PlanModel;
 
     // Define searchable fields for plan history (only string fields for text search)
     const searchableFields = [
@@ -34,51 +37,15 @@ export async function GET(req: NextRequest) {
       { buyed_date: -1 } // Sort by purchase date (newest first)
     );
 
-    // Populate plan details manually after the query
+    // Populate plan details - this should work now that Plan model is registered
     const populatedData = await PlanHistoryModel.populate(result.data, {
       path: 'plan_id',
-      select: 'plan_name plan_validity_days plan_price status description'
+      select: 'plan_name plan_validity_days plan_price status'
     });
-
-    // Enhance data with user and store details
-    const enhancedData = await Promise.all(
-      populatedData.map(async (historyItem: any) => {
-        try {
-          // Find user by username
-          const user = await UserModel.findOne(
-            { username: historyItem.buyed_owner_username, type: "owner" },
-            { username: 1, phoneNumber: 1, status: 1, createdAt: 1 }
-          );
-
-          let storeDetails = null;
-          if (user) {
-            // Find store by owner ID
-            const store = await StoreModel.findOne(
-              { ownerId: user._id },
-              { displayName: 1, email: 1, description: 1 }
-            );
-            storeDetails = store;
-          }
-
-          return {
-            ...historyItem.toObject(),
-            user_details: user || null,
-            store_details: storeDetails,
-          };
-        } catch (error) {
-          console.error(`Error fetching details for ${historyItem.buyed_owner_username}:`, error);
-          return {
-            ...historyItem.toObject(),
-            user_details: null,
-            store_details: null,
-          };
-        }
-      })
-    );
 
     return NextResponse.json({
       success: true,
-      data: enhancedData,
+      data: populatedData,
       pagination: result.pagination,
       filters: result.filters,
       message: `Found ${result.pagination.total} plan history records`,
