@@ -53,22 +53,25 @@ export async function GET(req: NextRequest) {
       const currentDate = new Date();
       
       filteredData = populatedData.filter((historyItem: any) => {
-        if (!historyItem.plan_id || !historyItem.buyed_date) {
-          return false;
+        // Use the existing expiry_date field from the database if available
+        if (historyItem.expiry_date) {
+          const expiryDate = new Date(historyItem.expiry_date);
+          const isExpired = currentDate > expiryDate;
+
+          if (statusFilter === "expired") {
+            return isExpired;
+          } else if (statusFilter === "active") {
+            return !isExpired;
+          }
         }
-
-        // Calculate expiry date
-        const buyedDate = new Date(historyItem.buyed_date);
-        const validityDays = historyItem.plan_id.plan_validity_days || 0;
-        const expiryDate = new Date(buyedDate);
-        expiryDate.setDate(expiryDate.getDate() + validityDays);
-
-        const isExpired = currentDate > expiryDate;
-
-        if (statusFilter === "expired") {
-          return isExpired;
-        } else if (statusFilter === "active") {
-          return !isExpired;
+        
+        // Fallback: use the status field from the database if expiry_date is not available
+        if (historyItem.status) {
+          if (statusFilter === "expired") {
+            return historyItem.status === "expired";
+          } else if (statusFilter === "active") {
+            return historyItem.status === "active";
+          }
         }
         
         return true;
