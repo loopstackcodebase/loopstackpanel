@@ -67,9 +67,9 @@ export const columns: ColumnDef<Owner>[] = [
           size="sm"
           className="text-xs sm:text-sm whitespace-nowrap hover:cursor-pointer px-2 py-1"
           onClick={() => {
-            // Navigate to view page
+            // Navigate to view page using username instead of _id
             const userid = document.location.pathname.split('/')[1];
-            window.location.href = `/${userid}/panel/user-management/view/${owner._id}`;
+            window.location.href = `/${userid}/panel/user-management/view/${owner.username}`;
           }}
         >
           <Eye className="h-4 w-4" />

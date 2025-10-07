@@ -9,11 +9,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Validate the user ID
-    const userId = params.id;
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    // Get username from params
+    const username = params.id;
+    if (!username) {
       return NextResponse.json(
-        { error: "Invalid user ID provided" },
+        { error: "Username is required" },
         { status: 400 }
       );
     }
@@ -21,14 +21,14 @@ export async function GET(
     // Connect to the database
     await connectToDatabase();
 
-    // Find the user by ID - exclude password field
-    const user = await UserModel.findById(userId).select("-password").lean();
+    // Find the user by username - exclude password field
+    const user = await UserModel.findOne({ username }).select("-password").lean();
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Find the store associated with this user - only select required fields
-    const store: any = await StoreModel.findOne({ ownerId: userId })
+    const store: any = await StoreModel.findOne({ ownerId: (user as any)._id })
       .select("_id displayName email statistics.products")
       .lean();
 
