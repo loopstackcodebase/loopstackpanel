@@ -10,6 +10,8 @@ export interface IUser extends Document {
   password: string;
   status: "active" | "inactive";
   type: UserType;
+  planId?: mongoose.Types.ObjectId;
+  planHistoryId?: mongoose.Types.ObjectId;
 }
 
 /* ---------------------- User Schema ---------------------- */
@@ -42,6 +44,16 @@ const UserSchema = new Schema<IUser>(
       enum: ["owner", "admin"],
       required: true,
       default: "owner",
+    },
+    planId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Plan",
+      required: false,
+    },
+    planHistoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PlanHistory",
+      required: false,
     },
   },
   {
